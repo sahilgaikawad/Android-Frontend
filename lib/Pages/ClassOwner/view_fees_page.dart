@@ -47,7 +47,7 @@ class _ViewFeesPageState extends State<ViewFeesPage> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(
-        Uri.parse('http://192.168.1.103:5001/api/fees/students'),
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/fees/students'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (mounted) {
@@ -105,7 +105,7 @@ class _ViewFeesPageState extends State<ViewFeesPage> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.post(
-        Uri.parse('http://192.168.1.103:5001/api/fees/payment'),
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/fees/payment'),
         headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
         body: jsonEncode({
           'student_id': studentId,

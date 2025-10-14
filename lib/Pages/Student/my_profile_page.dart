@@ -1,77 +1,105 @@
+// File: lib/Pages/Student/my_profile_page.dart
+
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
-// ------------------- Naya Page: Student ka Profile (Redesigned) -------------------
-class MyProfilePage extends StatelessWidget {
+// BADLAV 1: Widget ab StatefulWidget hai
+class MyProfilePage extends StatefulWidget {
   const MyProfilePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Abhi ke liye dummy data
-    const String studentName = "Aarav Mehta";
-    const String standard = "12th Science";
-    const String email = "aarav.mehta@email.com";
-    const String studentPhone = "9123456789";
-    const String parentPhone = "9988776655";
-    const String address = "456, XYZ Society, Pune";
+  State<MyProfilePage> createState() => _MyProfilePageState();
+}
 
+class _MyProfilePageState extends State<MyProfilePage> {
+  bool _isLoading = true;
+  String? _errorMessage;
+  // BADLAV 2: Dummy data ki jagah Map<String, dynamic>
+  Map<String, dynamic>? _profileData;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfileData();
+  }
+
+  // BADLAV 3: API se profile data fetch karne ka function
+  Future<void> _fetchProfileData() async {
+    setState(() { _isLoading = true; _errorMessage = null; });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) {
+        if (mounted) setState(() { _errorMessage = 'Not logged in.'; _isLoading = false; });
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/student/profile/me'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (mounted) {
+        if (response.statusCode == 200) {
+          setState(() {
+            _profileData = jsonDecode(response.body);
+            _isLoading = false;
+          });
+        } else {
+          setState(() { _errorMessage = 'Failed to load profile. Status: ${response.statusCode}'; _isLoading = false; });
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() { _errorMessage = 'Could not connect to server: ${e.toString()}'; _isLoading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.green.shade200,
-            Colors.green.shade50,
-            Colors.white,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          colors: [Colors.green.shade200, Colors.green.shade50, Colors.white],
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
         ),
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
           bottom: false,
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                // Naya profile header
-                _buildProfileHeader(studentName, standard),
-                // Header aur cards ke beech me sahi gap ke liye SizedBox
-                const SizedBox(height: 120),
-                // Profile details section
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Column(
-                    children: [
-                      _buildProfileDetailCard(
-                        icon: Icons.email_outlined,
-                        title: 'Email ID',
-                        value: email,
-                        color: Colors.redAccent,
-                      ),
-                      _buildProfileDetailCard(
-                        icon: Icons.phone_android_outlined,
-                        title: 'My Phone Number',
-                        value: studentPhone,
-                        color: Colors.blueAccent,
-                      ),
-                      _buildProfileDetailCard(
-                        icon: Icons.phone_outlined,
-                        title: 'Parent\'s Phone Number',
-                        value: parentPhone,
-                        color: Colors.orangeAccent,
-                      ),
-                      _buildProfileDetailCard(
-                        icon: Icons.location_on_outlined,
-                        title: 'Address',
-                        value: address,
-                        color: Colors.purpleAccent,
-                      ),
-                    ],
+          // BADLAV 4: build() method ab loading/error handle karta hai
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _errorMessage != null
+              ? Center(child: Text(_errorMessage!))
+              : RefreshIndicator(
+            onRefresh: _fetchProfileData,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  _buildProfileHeader(
+                    _profileData?['full_name'] ?? 'Student Name',
+                    _profileData?['standard'] ?? 'Standard',
                   ),
-                ),
-                const SizedBox(height: 80), // Nav bar ke liye jagah
-              ],
+                  const SizedBox(height: 120),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      children: [
+                        _buildProfileDetailCard(icon: Icons.email_outlined, title: 'Email ID', value: _profileData?['email'] ?? 'N/A', color: Colors.redAccent),
+                        _buildProfileDetailCard(icon: Icons.phone_android_outlined, title: 'My Phone Number', value: _profileData?['student_phone'] ?? 'N/A', color: Colors.blueAccent),
+                        _buildProfileDetailCard(icon: Icons.phone_outlined, title: 'Parent\'s Phone Number', value: _profileData?['parent_phone'] ?? 'N/A', color: Colors.orangeAccent),
+                        _buildProfileDetailCard(icon: Icons.location_on_outlined, title: 'Address', value: _profileData?['address'] ?? 'N/A', color: Colors.purpleAccent),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 80),
+                ],
+              ),
             ),
           ),
         ),
@@ -79,7 +107,6 @@ class MyProfilePage extends StatelessWidget {
     );
   }
 
-  // Naya header design
   Widget _buildProfileHeader(String name, String standard) {
     return Stack(
       clipBehavior: Clip.none,
@@ -110,20 +137,8 @@ class MyProfilePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              Text(
-                name,
-                style: GoogleFonts.lato(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                'Standard: $standard',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black54,
-                ),
-              ),
+              Text(name, style: GoogleFonts.lato(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text('Standard: $standard', style: const TextStyle(fontSize: 16, color: Colors.black54)),
             ],
           ),
         ),
@@ -131,7 +146,6 @@ class MyProfilePage extends StatelessWidget {
     );
   }
 
-  // Naya detail card design (Gap kam kar diya hai)
   Widget _buildProfileDetailCard({
     required IconData icon,
     required String title,
@@ -139,7 +153,6 @@ class MyProfilePage extends StatelessWidget {
     required Color color,
   }) {
     return Card(
-      // Yahan margin theek kar diya hai taaki extra gap na aaye
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 4,
       shadowColor: color.withOpacity(0.3),
@@ -157,19 +170,9 @@ class MyProfilePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
+                  Text(title, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                   const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.black87,
-                    ),
-                  ),
+                  Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)),
                 ],
               ),
             ),
@@ -179,4 +182,3 @@ class MyProfilePage extends StatelessWidget {
     );
   }
 }
-

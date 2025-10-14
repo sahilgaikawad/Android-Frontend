@@ -1,36 +1,45 @@
+// File: lib/Pages/Student/student_dashboard_page.dart
+
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+
 import '../login_page.dart';
 import 'my_attendance_page.dart';
 import 'my_fees_page.dart';
-import 'my_profile_page.dart'; // Naya page import kiya
+import 'my_profile_page.dart';
 
-// ------------------- Naya Page: Student ka Main Dashboard -------------------
 class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
-
   @override
   State<StudentDashboardPage> createState() => _StudentDashboardPageState();
 }
 
 class _StudentDashboardPageState extends State<StudentDashboardPage> {
   int _pageIndex = 0;
-
-  // Student ke liye alag pages, placeholder ko naye page se replace kiya
   final List<Widget> _pages = [
     const StudentHome(),
     const MyAttendancePage(),
     const MyFeesPage(),
-    const MyProfilePage(), // Yahan badlav kiya hai
+    const MyProfilePage(),
   ];
+  final List<String> _titles = ['Dashboard', 'My Attendance', 'My Fees', 'My Profile'];
 
-  final List<String> _titles = [
-    'Dashboard',
-    'My Attendance',
-    'My Fees',
-    'My Profile'
-  ];
+  // ============== LOGOUT FUNCTION AB TOKEN DELETE KAREGA ==============
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+            (Route<dynamic> route) => false,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,35 +49,22 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         title: Text(_titles[_pageIndex]),
         centerTitle: true,
         backgroundColor: Colors.green.withOpacity(0.8),
-        elevation: 0,
-        // Back button ab sirf doosre pages par dikhega
         leading: _pageIndex != 0
             ? IconButton(
           icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () {
-            // Back button dabane par dashboard (index 0) par jayenge
-            setState(() {
-              _pageIndex = 0;
-            });
-          },
+          onPressed: () => setState(() => _pageIndex = 0),
         )
-            : null, // Dashboard par back button nahi hoga
+            : null,
         actions: [
-          // Logout button wapas add kar diya hai
+          // Right side wala button ab logout karega
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-                    (Route<dynamic> route) => false,
-              );
-            },
+            tooltip: 'Logout',
+            onPressed: _logout,
           )
         ],
       ),
       bottomNavigationBar: CurvedNavigationBar(
-        // Navigation bar ko bhi page ke hisaab se update kiya
         index: _pageIndex,
         height: 60.0,
         items: const <Widget>[
@@ -80,76 +76,96 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         color: Colors.green,
         buttonBackgroundColor: Colors.green,
         backgroundColor: Colors.transparent,
-        animationCurve: Curves.easeInOut,
-        animationDuration: const Duration(milliseconds: 400),
-        onTap: (index) {
-          setState(() {
-            _pageIndex = index;
-          });
-        },
-        letIndexChange: (index) => true,
+        onTap: (index) => setState(() => _pageIndex = index),
       ),
       body: _pages[_pageIndex],
     );
   }
 }
 
-// ------------------- Student ka Home Page (Timetable) -------------------
-class StudentHome extends StatelessWidget {
+// ============== STUDENTHOME AB STATEFUL WIDGET HAI ==============
+class StudentHome extends StatefulWidget {
   const StudentHome({super.key});
+
+  @override
+  State<StudentHome> createState() => _StudentHomeState();
+}
+
+class _StudentHomeState extends State<StudentHome> {
+  bool _isLoading = true;
+  String? _studentName;
+  String? _instituteName;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfileData();
+  }
+
+  // ============== API SE DATA FETCH KARNE KA FUNCTION ==============
+  Future<void> _fetchProfileData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) {
+        if (mounted) setState(() { _errorMessage = 'Not logged in.'; _isLoading = false; });
+        return;
+      }
+      final response = await http.get(
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/student/profile/me'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (mounted) {
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          setState(() {
+            _studentName = data['full_name'];
+            _instituteName = data['institute_name'];
+            _isLoading = false;
+          });
+        } else {
+          setState(() { _errorMessage = 'Failed to load profile. Error: ${response.body}'; _isLoading = false; });
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() { _errorMessage = 'Connection error: ${e.toString()}'; _isLoading = false; });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.green.shade200,
-            Colors.green.shade50,
-            Colors.white,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: LinearGradient(colors: [Colors.green.shade200, Colors.green.shade50, Colors.white], begin: Alignment.topLeft, end: Alignment.bottomRight),
       ),
       child: SafeArea(
         bottom: false,
-        child: SingleChildScrollView(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _errorMessage != null
+            ? Center(child: Padding(padding: const EdgeInsets.all(16.0), child: Text(_errorMessage!, textAlign: TextAlign.center)))
+            : SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ============== DATA AB DYNAMIC HAI ==============
               Text(
-                'Welcome, Aarav!',
-                style: GoogleFonts.lato(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+                'Welcome, ${_studentName ?? 'Student'}!',
+                style: GoogleFonts.lato(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black87),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Here is your schedule and updates',
-                style: TextStyle(fontSize: 16, color: Colors.black54),
+              Text(
+                _instituteName ?? 'Your Institute',
+                style: const TextStyle(fontSize: 16, color: Colors.black54),
               ),
               const SizedBox(height: 30),
               _buildSectionTitle('Upcoming Tests', Icons.assignment_turned_in),
-              _buildUpcomingTestCard(
-                  'Physics Chapter 3 Test', 'October 10, 2025', '4:00 PM'),
-              _buildUpcomingTestCard(
-                  'Maths Weekly Test', 'October 12, 2025', '5:00 PM'),
-              const SizedBox(height: 30),
-              _buildSectionTitle('Recent Announcements', Icons.campaign),
-              _buildAnnouncementCard('Diwali Holidays',
-                  'Classes will be closed from 15th Oct to 20th Oct for Diwali.'),
+              _buildUpcomingTestCard('Physics Chapter 3 Test', 'October 20, 2025', '4:00 PM'),
               const SizedBox(height: 30),
               _buildSectionTitle('Your Timetable', Icons.calendar_month),
-              _buildTimetableCard('Physics', 'Monday, 4:00 PM - 5:00 PM',
-                  'Mr. Rahul Verma', Icons.science),
-              _buildTimetableCard('Chemistry', 'Tuesday, 5:00 PM - 6:00 PM',
-                  'Mrs. Sunita Nair', Icons.biotech),
-              _buildTimetableCard('Mathematics', 'Wednesday, 4:00 PM - 5:00 PM',
-                  'Mrs. Anjali Singh', Icons.calculate),
+              _buildTimetableCard('Physics', 'Monday, 4:00 PM', 'Mr. Rahul Verma', Icons.science),
               const SizedBox(height: 80),
             ],
           ),
@@ -165,10 +181,7 @@ class StudentHome extends StatelessWidget {
         children: [
           Icon(icon, color: Colors.green.shade700),
           const SizedBox(width: 8),
-          Text(
-            title,
-            style: GoogleFonts.lato(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+          Text(title, style: GoogleFonts.lato(fontSize: 20, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -179,7 +192,6 @@ class StudentHome extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.white.withOpacity(0.8),
       child: ListTile(
         leading: const Icon(Icons.timer, color: Colors.blueAccent),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -188,22 +200,7 @@ class StudentHome extends StatelessWidget {
     );
   }
 
-  Widget _buildAnnouncementCard(String title, String message) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.amber.shade50.withOpacity(0.8),
-      child: ListTile(
-        leading: const Icon(Icons.info, color: Colors.amber),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(message),
-      ),
-    );
-  }
-
-  Widget _buildTimetableCard(
-      String subject, String time, String teacher, IconData icon) {
+  Widget _buildTimetableCard(String subject, String time, String teacher, IconData icon) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 4,
@@ -216,52 +213,8 @@ class StudentHome extends StatelessWidget {
         ),
         title: Text(subject, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text('$time\nBy: $teacher'),
-        trailing:
-        const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
       ),
     );
   }
 }
-
-// ------------------- Placeholder Page for other sections -------------------
-class PlaceholderPage extends StatelessWidget {
-  final String pageName;
-  final IconData icon;
-  const PlaceholderPage({super.key, required this.pageName, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.green.shade200,
-            Colors.green.shade50,
-            Colors.white,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 80, color: Colors.green.withOpacity(0.5)),
-            const SizedBox(height: 20),
-            Text(
-              '$pageName\n(Coming Soon)',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.lato(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black54,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-

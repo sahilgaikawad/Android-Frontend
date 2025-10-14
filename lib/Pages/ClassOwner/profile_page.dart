@@ -41,7 +41,7 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
       final response = await http.get(
-        Uri.parse('http://192.168.1.103:5001/api/institute/profile'),
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/institute/profile'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -194,7 +194,7 @@ class __EditProfileDialogContentState extends State<_EditProfileDialogContent> {
     final token = prefs.getString('token');
     try {
       final response = await http.put(
-        Uri.parse('http://192.168.1.103:5001/api/institute/profile'),
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/institute/profile'),
         headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
         body: jsonEncode({
           'owner_name': _nameController.text,

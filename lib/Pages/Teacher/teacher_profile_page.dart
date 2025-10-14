@@ -31,7 +31,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(
-        Uri.parse('http://192.168.1.103:5001/api/teacher/profile/me'),
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/teacher/profile/me'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

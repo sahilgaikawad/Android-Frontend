@@ -39,7 +39,7 @@ class _ManageTeachersPageState extends State<ManageTeachersPage> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(
-        Uri.parse('http://192.168.1.103:5001/api/teacher'),
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/teacher'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (mounted) {
@@ -87,7 +87,7 @@ class _ManageTeachersPageState extends State<ManageTeachersPage> {
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('token');
         final response = await http.delete(
-          Uri.parse('http://192.168.1.103:5001/api/teacher/$teacherId'),
+          Uri.parse('https://coaching-api-backend.onrender.com:10000/api/teacher/$teacherId'),
           headers: {'Authorization': 'Bearer $token'},
         );
         if (mounted) {
@@ -203,7 +203,7 @@ class _TeacherDetailsDialogContentState extends State<_TeacherDetailsDialogConte
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(
-        Uri.parse('http://192.168.1.103:5001/api/teacher/${widget.teacherId}'),
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/teacher/${widget.teacherId}'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (mounted) {
@@ -313,7 +313,7 @@ class _EditTeacherDialogContentState extends State<_EditTeacherDialogContent> {
       final token = prefs.getString('token');
       final teacherId = widget.teacherData['id'];
       final response = await http.put(
-        Uri.parse('http://192.168.1.103:5001/api/teacher/$teacherId'),
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/teacher/$teacherId'),
         headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
         body: jsonEncode({
           'full_name': _nameController.text,

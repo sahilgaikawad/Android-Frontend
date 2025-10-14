@@ -1,141 +1,288 @@
+// File: lib/Pages/ClassOwner/manage_student_attendance_page.dart
+
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// Dummy data models
-class StudentAttendance {
-  final String id;
-  final String name;
-  final String standard;
+enum AttendanceStatus { Present, Absent, Leave }
 
-  StudentAttendance(
-      {required this.id, required this.name, required this.standard});
-}
-
-class AttendanceRecord {
-  final DateTime date;
-  AttendanceStatus status;
-
-  AttendanceRecord({required this.date, required this.status});
-}
-
-// Attendance status
-enum AttendanceStatus { present, absent, leave }
-
-// ------------------- Student Attendance Page (Updated with Search and Filter) -------------------
-class MarkStudentAttendancePage extends StatefulWidget {
-  const MarkStudentAttendancePage({super.key});
-
+// Main Page
+class ManageStudentAttendancePage extends StatefulWidget {
+  const ManageStudentAttendancePage({super.key});
   @override
-  State<MarkStudentAttendancePage> createState() =>
-      _MarkStudentAttendancePageState();
+  State<ManageStudentAttendancePage> createState() => _ManageStudentAttendancePageState();
 }
 
-class _MarkStudentAttendancePageState extends State<MarkStudentAttendancePage> {
-  // Dummy student data
-  final List<StudentAttendance> _allStudents = [
-    StudentAttendance(id: 'S01', name: 'Aarav Mehta', standard: '12th Science'),
-    StudentAttendance(
-        id: 'S02', name: 'Priya Sharma', standard: '11th Commerce'),
-    StudentAttendance(id: 'S03', name: 'Rohan Joshi', standard: '12th Science'),
-    StudentAttendance(id: 'S04', name: 'Sneha Patel', standard: '10th'),
-    StudentAttendance(id: 'S05', name: 'Vikram Singh', standard: '12th Arts'),
-    StudentAttendance(id: 'S06', name: 'Alia Khan', standard: '11th Commerce'),
-  ];
-
-  // Har student ke liye dummy history data
-  final Map<String, List<AttendanceRecord>> _dummyHistory = {
-    'S01': [
-      AttendanceRecord(date: DateTime(2025, 10, 3), status: AttendanceStatus.present),
-      AttendanceRecord(date: DateTime(2025, 10, 2), status: AttendanceStatus.absent),
-      AttendanceRecord(date: DateTime(2025, 10, 1), status: AttendanceStatus.present),
-    ],
-    'S02': [
-      AttendanceRecord(date: DateTime(2025, 10, 3), status: AttendanceStatus.present),
-      AttendanceRecord(date: DateTime(2025, 10, 2), status: AttendanceStatus.leave),
-      AttendanceRecord(date: DateTime(2025, 10, 1), status: AttendanceStatus.present),
-    ],
-    // ... baaki students ka data
-  };
-
-  // Naye state variables search aur filter ke liye
-  List<StudentAttendance> _filteredStudents = [];
+class _ManageStudentAttendancePageState extends State<ManageStudentAttendancePage> {
+  bool _isLoading = true;
+  List<dynamic> _allStudents = [];
+  List<dynamic> _filteredStudents = [];
+  String? _errorMessage;
   final TextEditingController _searchController = TextEditingController();
-  List<String> _standards = [];
-  String? _selectedStandard;
+  List<String> _standards = ['All Standards'];
+  String _selectedStandard = 'All Standards';
 
   @override
   void initState() {
     super.initState();
-    // Unique standards ki list banayi
-    _standards = _allStudents.map((s) => s.standard).toSet().toList();
-    _standards.insert(0, 'All Standards');
-    _selectedStandard = _standards[0];
-
-    _filteredStudents = _allStudents;
+    _fetchStudents();
     _searchController.addListener(_filterStudents);
   }
 
-  // Naya filter function
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchStudents() async {
+    setState(() { _isLoading = true; _errorMessage = null; });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.get(
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/student'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (mounted) {
+        if (response.statusCode == 200) {
+          final allData = jsonDecode(response.body);
+          final uniqueStandards = <String>{'All Standards'};
+          for (var student in allData) {
+            if (student['standard'] != null) uniqueStandards.add(student['standard']);
+          }
+          setState(() {
+            _allStudents = allData;
+            _filteredStudents = _allStudents;
+            _standards = uniqueStandards.toList();
+            _isLoading = false;
+          });
+        } else {
+          setState(() { _errorMessage = 'Failed to load students.'; _isLoading = false; });
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() { _errorMessage = 'Could not connect to server.'; _isLoading = false; });
+    }
+  }
+
   void _filterStudents() {
-    String query = _searchController.text.toLowerCase();
+    final query = _searchController.text.toLowerCase();
     setState(() {
       _filteredStudents = _allStudents.where((student) {
-        final nameMatch = student.name.toLowerCase().contains(query);
-        final standardMatch = _selectedStandard == 'All Standards' || student.standard == _selectedStandard;
+        final nameMatch = student['full_name'].toLowerCase().contains(query);
+        final standardMatch = _selectedStandard == 'All Standards' || student['standard'] == _selectedStandard;
         return nameMatch && standardMatch;
       }).toList();
     });
   }
 
-
-  // Naya function: Attendance record ko update karne ke liye
-  void _showUpdateStatusDialog(
-      AttendanceRecord record, StateSetter setStateDialog) {
-    AttendanceStatus? tempStatus = record.status;
+  void _showAttendanceHistoryDialog(Map<String, dynamic> student) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (context) => AlertDialog(
+        title: Text('History for ${student['full_name']}'),
+        contentPadding: const EdgeInsets.all(8),
+        content: _AttendanceHistoryDialogContent(student: student),
+        actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                          hintText: 'Search by student name...',
+                          prefixIcon: const Icon(Icons.search)
+                      ),
+                    )
+                ),
+                const SizedBox(width: 10),
+                DropdownButton<String>(
+                  value: _selectedStandard,
+                  items: _standards.map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(),
+                  onChanged: (newValue) {
+                    setState(() { _selectedStandard = newValue!; _filterStudents(); });
+                  },
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage != null
+                ? Center(child: Text(_errorMessage!))
+                : ListView.builder(
+              padding: const EdgeInsets.only(bottom: 80),
+              itemCount: _filteredStudents.length,
+              itemBuilder: (context, index) {
+                final student = _filteredStudents[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(child: Text(student['full_name'][0])),
+                    title: Text(student['full_name']),
+                    subtitle: Text('Standard: ${student['standard']}'),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.history),
+                      tooltip: 'View History',
+                      onPressed: () => _showAttendanceHistoryDialog(student),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Dialog content and logic
+class _AttendanceHistoryDialogContent extends StatefulWidget {
+  final Map<String, dynamic> student;
+  const _AttendanceHistoryDialogContent({required this.student});
+  @override
+  State<_AttendanceHistoryDialogContent> createState() => _AttendanceHistoryDialogContentState();
+}
+
+class _AttendanceHistoryDialogContentState extends State<_AttendanceHistoryDialogContent> {
+  bool _isLoading = true;
+  List<dynamic> _history = [];
+  String? _errorMessage;
+  List<dynamic> _selectedRecords = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHistory();
+  }
+
+  Future<void> _fetchHistory() async {
+    setState(() { _isLoading = true; _errorMessage = null; _selectedRecords.clear(); });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final studentId = widget.student['id'];
+      final response = await http.get(
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/student/history/$studentId'),
+        headers: {'Authorization': 'Bearer $token'},
+      ).timeout(const Duration(seconds: 15));
+
+      if(mounted){
+        if(response.statusCode == 200){
+          setState(() { _history = jsonDecode(response.body); _isLoading = false; });
+        } else {
+          setState(() { _errorMessage = "Failed to load history. Status: ${response.statusCode}"; _isLoading = false; });
+        }
+      }
+    } catch(e) {
+      if(mounted) setState(() { _errorMessage = "Connection error: ${e.toString()}"; _isLoading = false; });
+    }
+  }
+
+  Future<void> _updateRecord(String recordId, String status) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.put(
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/student/record/$recordId'),
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer $token' },
+        body: jsonEncode({'status': status}),
+      );
+      if (mounted) {
+        if (response.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Status updated!'), backgroundColor: Colors.green));
+          _fetchHistory();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to update status.'), backgroundColor: Colors.red));
+        }
+      }
+    } catch(e) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection error.'), backgroundColor: Colors.red));
+    }
+  }
+
+  Future<void> _deleteRecords(List<dynamic> recordIds) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.delete(
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/student/records'),
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer $token' },
+        body: jsonEncode({'recordIds': recordIds}),
+      );
+      if (mounted) {
+        if (response.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selected records deleted!'), backgroundColor: Colors.green));
+          _fetchHistory();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to delete records.'), backgroundColor: Colors.red));
+        }
+      }
+    } catch(e) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection error.'), backgroundColor: Colors.red));
+    }
+  }
+
+  String _statusToString(AttendanceStatus status) {
+    switch (status) {
+      case AttendanceStatus.Present: return 'Present';
+      case AttendanceStatus.Absent: return 'Absent';
+      case AttendanceStatus.Leave: return 'Leave';
+    }
+  }
+
+  void _showUpdateStatusDialog(Map<String, dynamic> record) {
+    AttendanceStatus? tempStatus;
+    try {
+      tempStatus = AttendanceStatus.values.firstWhere((e) => e.name == record['status']);
+    } catch(e) {
+      tempStatus = null;
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
         return AlertDialog(
-          title: Text(
-              "Update status for ${DateFormat('dd-MM-yyyy').format(record.date)}"),
+          title: Text("Update status for ${DateFormat('dd-MM-yyyy').format(DateTime.parse(record['attendance_date']))}"),
           content: StatefulBuilder(
             builder: (BuildContext context, StateSetter setStateAlert) {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  RadioListTile<AttendanceStatus>(
-                    title: const Text('Present'),
-                    value: AttendanceStatus.present,
-                    groupValue: tempStatus,
-                    onChanged: (val) => setStateAlert(() => tempStatus = val),
-                  ),
-                  RadioListTile<AttendanceStatus>(
-                    title: const Text('Absent'),
-                    value: AttendanceStatus.absent,
-                    groupValue: tempStatus,
-                    onChanged: (val) => setStateAlert(() => tempStatus = val),
-                  ),
-                  RadioListTile<AttendanceStatus>(
-                    title: const Text('Leave'),
-                    value: AttendanceStatus.leave,
-                    groupValue: tempStatus,
-                    onChanged: (val) => setStateAlert(() => tempStatus = val),
-                  ),
+                  RadioListTile<AttendanceStatus>(title: const Text('Present'), value: AttendanceStatus.Present, groupValue: tempStatus, onChanged: (val) => setStateAlert(() => tempStatus = val)),
+                  RadioListTile<AttendanceStatus>(title: const Text('Absent'), value: AttendanceStatus.Absent, groupValue: tempStatus, onChanged: (val) => setStateAlert(() => tempStatus = val)),
+                  RadioListTile<AttendanceStatus>(title: const Text('Leave'), value: AttendanceStatus.Leave, groupValue: tempStatus, onChanged: (val) => setStateAlert(() => tempStatus = val)),
                 ],
               );
             },
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () {
-                setStateDialog(() {
-                  record.status = tempStatus!;
-                });
-                Navigator.of(context).pop();
+                final status = tempStatus;
+                if (status != null) {
+                  String newStatus = _statusToString(status);
+                  _updateRecord(record['id'], newStatus);
+                }
+                Navigator.of(dialogContext).pop();
               },
               child: const Text('Update'),
             )
@@ -145,190 +292,61 @@ class _MarkStudentAttendancePageState extends State<MarkStudentAttendancePage> {
     );
   }
 
-  // Attendance History Popup
-  void _showAttendanceHistoryDialog(StudentAttendance student) {
-    List<AttendanceRecord> history = List.from(_dummyHistory[student.id] ?? []); // Make a copy
-    List<AttendanceRecord> selectedRecords = [];
-    bool isAllSelected = false;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('History for ${student.name}'),
-          contentPadding: const EdgeInsets.all(8.0),
-          content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setStateDialog) {
-              return SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Select All aur Delete Selected
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Checkbox(
-                                value: isAllSelected,
-                                onChanged: (bool? value) {
-                                  setStateDialog(() {
-                                    isAllSelected = value!;
-                                    selectedRecords = isAllSelected ? List.from(history) : [];
-                                  });
-                                },
-                              ),
-                              const Text("Select All"),
-                            ],
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                            onPressed: selectedRecords.isEmpty ? null : () {
-                              setStateDialog(() {
-                                history.removeWhere((record) => selectedRecords.contains(record));
-                                _dummyHistory[student.id] = history; // Update main history list
-                                selectedRecords.clear();
-                                isAllSelected = false;
-                              });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Selected records deleted!')),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(),
-                    // History List
-                    Expanded(
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: history.length,
-                        itemBuilder: (context, index) {
-                          final record = history[index];
-                          return CheckboxListTile(
-                            value: selectedRecords.contains(record),
-                            onChanged: (bool? value) {
-                              setStateDialog(() {
-                                if (value!) {
-                                  selectedRecords.add(record);
-                                } else {
-                                  selectedRecords.remove(record);
-                                }
-                                isAllSelected = selectedRecords.length == history.length;
-                              });
-                            },
-                            title: Text(DateFormat('dd-MM-yyyy').format(record.date)),
-                            secondary: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  record.status.name[0].toUpperCase(),
-                                  style: TextStyle(
-                                      color: _getToggleFillColor(record.status),
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.edit, size: 20),
-                                  onPressed: () => _showUpdateStatusDialog(record, setStateDialog),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete, size: 20, color: Colors.redAccent),
-                                  onPressed: () {
-                                    setStateDialog(() {
-                                      final removedRecord = history.removeAt(index);
-                                      _dummyHistory[student.id] = history;
-                                      selectedRecords.remove(removedRecord);
-                                    });
-                                  },
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              child: const Text('Close'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  Color _getToggleFillColor(AttendanceStatus status) {
+    switch (status) {
+      case AttendanceStatus.Present: return Colors.green;
+      case AttendanceStatus.Absent: return Colors.red;
+      case AttendanceStatus.Leave: return Colors.orange;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
+    return SizedBox(
+      width: double.maxFinite,
+      child: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+          ? Center(child: Text(_errorMessage!))
+          : Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Naye search aur filter widgets
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by student name...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.8),
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('Delete Selected (${_selectedRecords.length})'),
+                IconButton(icon: const Icon(Icons.delete_sweep, color: Colors.red), onPressed: _selectedRecords.isEmpty ? null : () => _deleteRecords(_selectedRecords.map((r) => r['id'] as String).toList())),
+              ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: DropdownButtonFormField<String>(
-              initialValue: _selectedStandard,
-              decoration: InputDecoration(
-                labelText: 'Filter by Standard',
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.8),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              items: _standards.map((String standard) {
-                return DropdownMenuItem<String>(
-                  value: standard,
-                  child: Text(standard),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedStandard = newValue;
-                  _filterStudents();
-                });
-              },
-            ),
-          ),
+          const Divider(),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.only(bottom: 80),
-              itemCount: _filteredStudents.length,
+            child: _history.isEmpty
+                ? const Center(child: Text("No attendance history found."))
+                : ListView.builder(
+              shrinkWrap: true,
+              itemCount: _history.length,
               itemBuilder: (context, index) {
-                final student = _filteredStudents[index];
-                return _buildStudentListItem(student);
+                final record = _history[index];
+                return CheckboxListTile(
+                  value: _selectedRecords.contains(record),
+                  onChanged: (bool? value) {
+                    setState(() {
+                      if (value!) _selectedRecords.add(record);
+                      else _selectedRecords.remove(record);
+                    });
+                  },
+                  title: Text(DateFormat('dd MMM, yyyy').format(DateTime.parse(record['attendance_date']))),
+                  secondary: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(record['status'][0], style: TextStyle(color: _getToggleFillColor(AttendanceStatus.values.firstWhere((e) => e.name == record['status'])), fontWeight: FontWeight.bold)),
+                      IconButton(icon: const Icon(Icons.edit, size: 20), onPressed: () => _showUpdateStatusDialog(record)),
+                    ],
+                  ),
+                );
               },
             ),
           ),
@@ -336,44 +354,4 @@ class _MarkStudentAttendancePageState extends State<MarkStudentAttendancePage> {
       ),
     );
   }
-
-  Widget _buildStudentListItem(StudentAttendance student) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        leading: CircleAvatar(
-          backgroundColor: Colors.orange.shade100,
-          child: Text(
-            student.name[0],
-            style: const TextStyle(
-                color: Colors.orange, fontWeight: FontWeight.bold),
-          ),
-        ),
-        title: Text(student.name,
-            style:
-            const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        subtitle: Text(student.standard,
-            style: const TextStyle(color: Colors.grey)),
-        trailing: IconButton(
-          icon: const Icon(Icons.history, color: Colors.blueGrey, size: 28),
-          tooltip: 'View History',
-          onPressed: () => _showAttendanceHistoryDialog(student),
-        ),
-      ),
-    );
-  }
-
-  Color _getToggleFillColor(AttendanceStatus status) {
-    switch (status) {
-      case AttendanceStatus.present:
-        return Colors.green;
-      case AttendanceStatus.absent:
-        return Colors.red;
-      case AttendanceStatus.leave:
-        return Colors.orange;
-    }
-  }
 }
-

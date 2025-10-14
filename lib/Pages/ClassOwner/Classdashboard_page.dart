@@ -14,7 +14,7 @@ import 'add_teacher_page.dart';
 import 'manage_students_page.dart';
 import 'manage_teachers_page.dart';
 import 'mark_teacher_attendance_page.dart';
-import 'mark_student_attendance_page.dart';
+import 'mark_student_attendance_page.dart'; // Correct import if name differs
 import 'manage_teacher_attendance_page.dart';
 import 'view_fees_page.dart';
 import 'profile_page.dart';
@@ -39,19 +39,19 @@ class _DashboardPageState extends State<DashboardPage> {
     _titleStack.add('Dashboard');
   }
 
-  // ============== BADLAV YAHAN HUA HAI ==============
   void _initializePages() {
     _mainPages = [
       const DashboardHome(),
       ManagePage(
         onAddStudent: () => _navigateTo(const AddStudentPage(), 'Add Student'),
         onAddTeacher: () => _navigateTo(const AddTeacherPage(), 'Add Teacher'),
-        // Yahan se onAddStudent parameter hata diya gaya hai
         onViewStudents: () => _navigateTo(const ManageStudentsPage(), 'Manage Students'),
-        // Yahan se onAddTeacher parameter hata diya gaya hai
         onViewTeachers: () => _navigateTo(const ManageTeachersPage(), 'Manage Teachers'),
         onMarkTeacherAttendance: () => _navigateTo(const MarkTeacherAttendancePage(), 'Mark Teacher Attendance'),
-        onManageStudentAttendance: () => _navigateTo(const MarkStudentAttendancePage(), 'Manage Student Attendance'),
+
+        // ============== THIS LINE IS NOW FIXED ==============
+        onManageStudentAttendance: () => _navigateTo(const ManageStudentAttendancePage(), 'Manage Student Attendance'),
+
         onManageTeacherAttendance: () => _navigateTo(const ManageTeacherAttendancePage(), 'Manage Teacher Attendance'),
       ),
       const ViewFeesPage(),
@@ -186,7 +186,7 @@ class _DashboardHomeState extends State<DashboardHome> {
         return;
       }
       final response = await http.get(
-        Uri.parse('http://192.168.1.103:5001/api/institute/profile'),
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/institute/profile'),
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer $token',},
       );
       if(mounted){

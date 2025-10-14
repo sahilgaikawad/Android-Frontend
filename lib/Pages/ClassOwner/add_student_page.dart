@@ -50,7 +50,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.post(
-        Uri.parse('http://192.168.1.103:5001/api/student/add'),
+        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/student/add'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

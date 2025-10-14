@@ -55,7 +55,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     });
 
     // Android Emulator ke liye localhost ki jagah 10.0.2.2 use karein
-    const String apiUrl = 'http://192.168.1.103:5001/api/auth/register';
+    const String apiUrl = 'https://coaching-api-backend.onrender.com:10000/api/auth/register';
 
     try {
       // API par POST request bhejein
