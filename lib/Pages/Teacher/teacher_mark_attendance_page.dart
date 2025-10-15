@@ -39,7 +39,7 @@ class _TeacherMarkAttendancePageState extends State<TeacherMarkAttendancePage> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/teacher/profile/my-classes'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/teacher/profile/my-classes'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (mounted) {
@@ -74,7 +74,7 @@ class _TeacherMarkAttendancePageState extends State<TeacherMarkAttendancePage> {
       final formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/student?date=$formattedDate&standard=$_selectedClass'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/attendance/student?date=$formattedDate&standard=$_selectedClass'),
         headers: {'Authorization': 'Bearer $token'},
       ).timeout(const Duration(seconds: 15));
 
@@ -129,7 +129,7 @@ class _TeacherMarkAttendancePageState extends State<TeacherMarkAttendancePage> {
       });
 
       final response = await http.post(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/student'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/attendance/student'),
         headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
         body: jsonEncode({
           'date': formattedDate,

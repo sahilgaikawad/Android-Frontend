@@ -43,7 +43,7 @@ class _ManageTeacherAttendancePageState extends State<ManageTeacherAttendancePag
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/teacher'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/teacher'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (mounted) {
@@ -165,7 +165,7 @@ class _AttendanceHistoryDialogContentState extends State<_AttendanceHistoryDialo
 
       // ============== BADLAV YAHAN HUA HAI: URL me '/history' joda gaya hai ==============
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/teacher/history/$teacherId'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/attendance/teacher/history/$teacherId'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -186,7 +186,7 @@ class _AttendanceHistoryDialogContentState extends State<_AttendanceHistoryDialo
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.put(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/teacher/record/$recordId'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/attendance/teacher/record/$recordId'),
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer $token' },
         body: jsonEncode({'status': status}),
       );
@@ -208,7 +208,7 @@ class _AttendanceHistoryDialogContentState extends State<_AttendanceHistoryDialo
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.delete(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/teacher/records'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/attendance/teacher/records'),
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer $token' },
         body: jsonEncode({'recordIds': recordIds}),
       );

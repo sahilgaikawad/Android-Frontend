@@ -38,7 +38,7 @@ class _MarkTeacherAttendancePageState extends State<MarkTeacherAttendancePage> {
 
       // TIMEOUT ADDED HERE
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/teacher?date=$formattedDate'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/attendance/teacher?date=$formattedDate'),
         headers: {'Authorization': 'Bearer $token'},
       ).timeout(const Duration(seconds: 15));
 
@@ -97,7 +97,7 @@ class _MarkTeacherAttendancePageState extends State<MarkTeacherAttendancePage> {
 
       // TIMEOUT ADDED HERE
       final response = await http.post(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/teacher'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/attendance/teacher'),
         headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
         body: jsonEncode({
           'date': formattedDate,

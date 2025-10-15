@@ -34,7 +34,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/student/my-history'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/attendance/student/my-history'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

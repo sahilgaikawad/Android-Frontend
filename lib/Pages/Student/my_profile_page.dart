@@ -38,7 +38,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
       }
 
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/student/profile/me'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/student/profile/me'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

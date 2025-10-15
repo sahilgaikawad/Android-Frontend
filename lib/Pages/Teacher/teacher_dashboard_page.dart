@@ -122,7 +122,7 @@ class _TeacherHomeState extends State<TeacherHome> {
         return;
       }
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/teacher/profile/me'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/teacher/profile/me'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (mounted) {

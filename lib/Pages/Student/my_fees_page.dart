@@ -32,7 +32,7 @@ class _MyFeesPageState extends State<MyFeesPage> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/fees/my-details'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/fees/my-details'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

@@ -44,7 +44,7 @@ class _ManageStudentAttendancePageState extends State<ManageStudentAttendancePag
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/student'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/student'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (mounted) {
@@ -180,7 +180,7 @@ class _AttendanceHistoryDialogContentState extends State<_AttendanceHistoryDialo
       final token = prefs.getString('token');
       final studentId = widget.student['id'];
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/student/history/$studentId'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/attendance/student/history/$studentId'),
         headers: {'Authorization': 'Bearer $token'},
       ).timeout(const Duration(seconds: 15));
 
@@ -201,7 +201,7 @@ class _AttendanceHistoryDialogContentState extends State<_AttendanceHistoryDialo
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.put(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/student/record/$recordId'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/attendance/student/record/$recordId'),
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer $token' },
         body: jsonEncode({'status': status}),
       );
@@ -223,7 +223,7 @@ class _AttendanceHistoryDialogContentState extends State<_AttendanceHistoryDialo
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.delete(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/student/records'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/attendance/student/records'),
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer $token' },
         body: jsonEncode({'recordIds': recordIds}),
       );

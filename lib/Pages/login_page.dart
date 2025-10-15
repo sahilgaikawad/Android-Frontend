@@ -58,7 +58,7 @@ class _LoginPageState extends State<LoginPage> {
         roleForApi = 'owner';
     }
 
-    const String apiUrl = 'https://coaching-api-backend.onrender.com:10000/api/auth/login';
+    const String apiUrl = 'https://coaching-api-backend.onrender.com/api/auth/login';
 
     try {
       final response = await http.post(

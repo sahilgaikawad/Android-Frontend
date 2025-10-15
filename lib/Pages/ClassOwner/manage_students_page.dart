@@ -41,7 +41,7 @@ class _ManageStudentsPageState extends State<ManageStudentsPage> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/student'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/student'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (mounted) {
@@ -94,7 +94,7 @@ class _ManageStudentsPageState extends State<ManageStudentsPage> {
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('token');
         final response = await http.delete(
-          Uri.parse('https://coaching-api-backend.onrender.com:10000/api/student/$studentId'),
+          Uri.parse('https://coaching-api-backend.onrender.com/api/student/$studentId'),
           headers: {'Authorization': 'Bearer $token'},
         );
         if (mounted) {
@@ -239,7 +239,7 @@ class __EditStudentDialogContentState extends State<_EditStudentDialogContent> {
       final token = prefs.getString('token');
       final studentId = widget.studentData['id'];
       final response = await http.put(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/student/$studentId'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/student/$studentId'),
         headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
         body: jsonEncode({
           'full_name': _nameController.text, 'standard': _standardController.text,
@@ -318,7 +318,7 @@ class _StudentDetailsDialogContentState extends State<_StudentDetailsDialogConte
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/student/${widget.studentId}'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/student/${widget.studentId}'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (mounted) {

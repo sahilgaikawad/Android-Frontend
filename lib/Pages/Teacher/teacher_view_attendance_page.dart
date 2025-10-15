@@ -34,7 +34,7 @@ class _TeacherViewAttendancePageState extends State<TeacherViewAttendancePage> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/attendance/teacher/my-history'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/attendance/teacher/my-history'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

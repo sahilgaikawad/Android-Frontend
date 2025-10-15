@@ -186,7 +186,7 @@ class _DashboardHomeState extends State<DashboardHome> {
         return;
       }
       final response = await http.get(
-        Uri.parse('https://coaching-api-backend.onrender.com:10000/api/institute/profile'),
+        Uri.parse('https://coaching-api-backend.onrender.com/api/institute/profile'),
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer $token',},
       );
       if(mounted){
