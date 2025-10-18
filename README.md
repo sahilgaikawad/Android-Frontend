@@ -26,14 +26,14 @@ This is a full-stack, multi-tenant application designed for educational institut
       * View a comprehensive dashboard of fee collection: total due, total paid, and outstanding balances.
       * Generate financial reports.
   * **Student Oversight**:
-      * View a complete list of all students across all standards.
+      * Management of students across all standards.
       * Track the attendance and fee status of any student in the institute.
+      * View, update, and delete historical student attendance records.
 
 ### 👨‍🏫 Teacher Features
 
   * **Student Attendance**:
       * Mark daily attendance for students in their assigned classes.
-      * View, update, and delete historical student attendance records.
       * Instantly search for students by name and filter by standard.
   * **Student Oversight**:
       * View the fee payment status for students in their classes to send reminders.
