@@ -168,23 +168,24 @@ DB_PASSWORD=your_password
 DB_PORT=5432
 JWT_SECRET=your_jwt_secret_key
 
-**8. Setup the Database:** 
+## 8. Setup the Database:
 Connect to your PostgreSQL instance and create the database. Then, run the SQL scripts to create the necessary tables (Students, Teachers, StudentAttendance, TeacherAttendance, etc.).
 
-**9. Run the server:**
+## 9. Run the server:
 Bash
 npm start
 
 The server will start, typically on http://localhost:3000.
 
-**10. Frontend Setup**
+## 10. Frontend Setup
 Navigate to the frontend directory:
 Bash
 cd <project-folder>/frontend
 Get Flutter packages:
 Bash
 flutter pub get
-**11. Configure API Connection:** 
+
+## 11. Configure API Connection:
 Open the lib/services/api_service.dart file and update the _baseUrl to match your backend server's IP address and port. It's crucial to use your machine's network IP, not localhost, for a physical device to connect.
 
 Dart
@@ -196,7 +197,8 @@ static const String _baseUrl = "http://192.168.1.10:3000/api";
 // IMPORTANT: Replace this with your actual auth token after login
 static const String _authToken = "your_jwt_token_here";
 
-**12. Run the application:** Connect a device or start an emulator and run:
+## 12. Run the application:
+Connect a device or start an emulator and run:
 Bash
 flutter run
 
